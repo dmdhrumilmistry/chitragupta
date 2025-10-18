@@ -1,0 +1,10 @@
+# Use root/example as user/password credentials
+services:
+  mongo:
+    image: mongo:latest
+    restart: always
+    ports:
+      - 27017:27017 # to be only exposed in testing env
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGODB_ADMINUSERNAME:-root}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGODB_ADMINPASSWORD:-example}
