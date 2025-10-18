@@ -1,0 +1,11 @@
+[project]
+name = "chitragupta"
+version = "0.1.0"
+description = "A vulnerability management and analysis tool."
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "django>=5.2.7",
+    "django-mongodb-backend>=5.2.1",
+    "python-dotenv>=1.1.1",
+]
