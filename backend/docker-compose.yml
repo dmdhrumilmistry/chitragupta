@@ -8,3 +8,17 @@ services:
     environment:
       MONGO_INITDB_ROOT_USERNAME: ${MONGODB_ADMINUSERNAME:-root}
       MONGO_INITDB_ROOT_PASSWORD: ${MONGODB_ADMINPASSWORD:-example}
+
+  redis:
+    image: redis:latest
+    restart: always
+    ports:
+      - 6379:6379 # to be only exposed in testing env
+    command: ["redis-server", "--requirepass", "${REDIS_PASSWORD:-example}"]
+    volumes:
+      - redis-data:/data
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-example}
+
+volumes:
+  redis-data:
