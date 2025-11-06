@@ -14,10 +14,18 @@ Including another URLconf
     1. Import the include() function: from django.urls import include, path
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
+
 from django.contrib import admin
 from django.urls import path, include
 
+# Change Admin Page default values
+admin.site.site_url = "/admin"
+admin.site.site_header = "Chitragupta Admin Portal"
+admin.site.site_title = "Chitragupta Login"
+admin.site.index_title = "Welcome to Chitragupta Admin"
+
+
 urlpatterns = [
-    path('admin/', admin.site.urls),
-    path('api/core/', include('core.urls')),
+    path("admin/", admin.site.urls),
+    path("api/core/", include("core.urls")),
 ]

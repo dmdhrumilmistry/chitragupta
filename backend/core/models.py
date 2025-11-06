@@ -18,6 +18,9 @@ class RepoOwner(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
+    class Meta:
+        ordering = ["-created_at"]
+
     def __str__(self):
         return f"{self.platform}({self.name})"
 
@@ -41,6 +44,9 @@ class Repo(models.Model):
     latest_commit_sha = models.CharField(max_length=40)
     previous_commit_sha = models.CharField(max_length=40, null=True, blank=True)
 
+    class Meta:
+        ordering = ["-created_at"]
+
     def __str__(self):
-        return f"{self.platform}({self.owner}/{self.name}@{self.latest_commit_sha})"
+        return f"{self.platform}({self.owner.name}/{self.name}@{self.latest_commit_sha})"
 

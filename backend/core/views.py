@@ -6,10 +6,12 @@ from rest_framework import renderers
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
-from django.shortcuts import render
+from django.utils.decorators import method_decorator
+from django.views.decorators.cache import cache_page
 
 from .models import RepoOwner, Repo
 from .serializers import RepoOwnerSerializer, RepoSerializer
+
 
 schema_view = get_schema_view(
     title="Chitragupta API",
@@ -17,11 +19,14 @@ schema_view = get_schema_view(
     renderer_classes=[JSONOpenAPIRenderer],
 )
 
+
+@method_decorator(cache_page(60 * 15), name='dispatch')
 class RepoOwnerViewSet(ModelViewSet):
     queryset = RepoOwner.objects.all()
     serializer_class = RepoOwnerSerializer
     filterset_fields = ['platform', 'name']
 
+@method_decorator(cache_page(60 * 15), name='dispatch')
 class RepoViewSet(ModelViewSet):
     queryset = Repo.objects.all()
     serializer_class = RepoSerializer

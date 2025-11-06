@@ -8,6 +8,8 @@ services:
     environment:
       MONGO_INITDB_ROOT_USERNAME: ${MONGODB_ADMINUSERNAME:-root}
       MONGO_INITDB_ROOT_PASSWORD: ${MONGODB_ADMINPASSWORD:-example}
+    volumes:
+      - mongo-data:/data/db
 
   redis:
     image: redis:latest
@@ -18,7 +20,9 @@ services:
     volumes:
       - redis-data:/data
     environment:
+      REDIS_USERNAME: ${REDIS_USERNAME:-default}
       REDIS_PASSWORD: ${REDIS_PASSWORD:-example}
 
 volumes:
   redis-data:
+  mongo-data:
