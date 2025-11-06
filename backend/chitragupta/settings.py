@@ -162,3 +162,12 @@ REST_FRAMEWORK = {
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
     'PAGE_SIZE': 10,  # Default page size
 }
+
+GITHUB_APPS_CONFIG = {
+    "default": {
+        "client_id": environ.get("GITHUB_APP_CLIENT_ID"),
+        "app_id": environ.get("GITHUB_APP_ID"),
+        "private_key": environ.get("GITHUB_APP_PRIVATE_KEY"),
+        "installation_id": environ.get("GITHUB_APP_INSTALLATION_ID"),
+    }
+}
