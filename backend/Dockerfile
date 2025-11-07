@@ -1,5 +1,5 @@
 FROM cgr.dev/chainguard/wolfi-base:latest
-RUN apk add curl build-base posix-libc-utils
+RUN apk add curl build-base posix-libc-utils trufflehog git gcc
 
 WORKDIR /home/root
 
