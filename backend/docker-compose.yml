@@ -23,6 +23,32 @@ services:
       REDIS_USERNAME: ${REDIS_USERNAME:-default}
       REDIS_PASSWORD: ${REDIS_PASSWORD:-example}
 
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: always
+    ports:
+      - 8000:8000
+    env_file:
+      - .env.sample
+    depends_on:
+      - mongo
+      - redis
+
+  celery_worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: always
+    env_file:
+      - .env.sample
+    depends_on:
+      - backend
+      - mongo
+      - redis
+    command: ["uv", "run", "celery", "-A", "chitragupta", "worker", "--loglevel=info"]
+
 volumes:
   redis-data:
   mongo-data:
