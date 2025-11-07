@@ -1,11 +1,13 @@
 from datetime import datetime
+from dateutil import parser
+from json import loads, JSONDecodeError
 from logging import getLogger
+from subprocess import run, PIPE, STDOUT
 
 from celery import shared_task
-from django.conf import settings
 
-from core.models import RepoOwner, Repo
-from utils.github import GitHubUtils
+from core.models import RepoOwner, Repo, SecretScanResult
+from utils.github import GitHubUtils, get_default_github_app
 
 logger = getLogger(__name__)
 
@@ -18,12 +20,7 @@ def fetch_owner_repos_task(instance_pk: str):
     except RepoOwner.DoesNotExist:
         return {"ok": False, "reason": "instance_not_found"}
 
-    default_config = settings.GITHUB_APPS_CONFIG.get("default")
-    gh = GitHubUtils(
-        github_app_id=default_config["client_id"],
-        app_private_key=default_config["private_key"],
-        installation_id=int(default_config["installation_id"]),
-    )
+    gh: GitHubUtils = get_default_github_app()
 
     # until = datetime.now()
     for repo in gh.get_owner_repos(owner.name):
@@ -49,4 +46,111 @@ def fetch_owner_repos_task(instance_pk: str):
 
         # commit_details = repo.get_commits(until=until)
         # process commit_details...
+    return {"ok": True}
+
+
+@shared_task
+def scan_repo(repo_pk: str, concurrency: int = 10, only_verified: bool = False):
+    try:
+        repo = Repo.objects.get(pk=repo_pk)
+    except Repo.DoesNotExist:
+        logger.error(f"Repo with pk {repo_pk} does not exist.")
+        return {"ok": False, "reason": "repo_not_found"}
+
+    gh = get_default_github_app()
+    token = gh.auth.token
+
+    until = datetime.now()
+    command = [
+        "trufflehog",
+        "git",
+        repo.get_https_clone_url(token=token),
+        f"--concurrency={concurrency}",
+        "--json",
+        "--no-update",
+        "--user-agent-suffix=ChitraGupta",
+    ]
+
+    if repo.latest_commit_sha != "":
+        command.append(f"--since-commit={repo.latest_commit_sha}")
+
+    if only_verified:
+        command.append("--only-verified")
+
+    # Placeholder for scanning logic
+    logger.info(f"Scanning repository: {repo} with command: {' '.join(command)}")
+    try:
+        trufflehog_output = run(
+            command,
+            stdout=PIPE,
+            stderr=STDOUT,
+            text=True,
+            check=True,
+        )
+
+        logger.info(
+            "Trufflehog scan completed for repo %s: %s",
+            repo.https_url,
+            trufflehog_output.stdout,
+        )
+        if "encountered errors during scan" in trufflehog_output.stdout:
+            raise Exception(
+                f"Trufflehog scan failed for repo {repo.https_url}, error: {trufflehog_output.stdout}"
+            )
+
+        # Process trufflehog_output.stdout to extract secrets
+        for line in trufflehog_output.stdout.splitlines():
+            if not line.strip():
+                continue
+
+            if "SourceMetadata" not in line:
+                continue
+
+            try:
+                result_data = loads(line)
+                git_data = result_data.get("SourceMetadata", {}).get("Data", {}).get("Git", {})
+                
+                commit_timestamp = git_data.get("timestamp")
+                commit_datetime = parser.parse(commit_timestamp)
+
+                secret_result, created = SecretScanResult.objects.get_or_create(
+                    file_path=git_data.get("file"),
+                    file_line=git_data.get("line"),
+                    committer_email=git_data.get("email"),
+                    commit_datetime=commit_datetime,
+                    is_verified=result_data.get("Verified", False),
+                    repo=repo,
+                    secret_type=result_data.get("DetectorName", ""),
+                    secret_value=result_data.get("Raw", ""),
+                    secret_value_rawv2=result_data.get("RawV2", ""),
+                    additional_info=result_data,
+                )
+
+                if created:
+                    logger.info(f"Created SecretScanResult: {secret_result}")
+                else:
+                    logger.info(f"SecretScanResult already exists: {secret_result}")
+                
+            except JSONDecodeError:
+                logger.warning(f"Failed to decode JSON line: {line}")
+            except Exception:
+                logger.error(
+                    f"Error saving SecretScanResult from line: {line}", exc_info=True
+                )
+
+        # update repo commit SHAs if scan was successful
+        repo.previous_commit_sha = repo.latest_commit_sha
+        repo.latest_commit_sha = (
+            gh.client.get_repo(f"{repo.owner.name}/{repo.name}", lazy=True)
+            .get_commits(until=until)[0]
+            .sha
+        )
+        repo.save()
+
+    except Exception:
+        logger.error(
+            f"Error scanning repo {repo} with command: {command}", exc_info=True
+        )
+        return {"ok": False, "reason": "scan_error"}
+
     return {"ok": True}

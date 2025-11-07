@@ -32,9 +32,14 @@ services:
       - 8000:8000
     env_file:
       - .env.sample
+      - .env.dev
     depends_on:
       - mongo
       - redis
+    volumes:
+      - .:/home/root/
+    command: |
+      sh -c "uv run python manage.py migrate && uv run python manage.py runserver 0.0.0.0:8000"
 
   celery_worker:
     build:
@@ -43,11 +48,47 @@ services:
     restart: always
     env_file:
       - .env.sample
+      - .env.dev
     depends_on:
       - backend
       - mongo
       - redis
     command: ["uv", "run", "celery", "-A", "chitragupta", "worker", "--loglevel=info"]
+    volumes:
+      - .:/home/root/
+      
+  celery_beat:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: always
+    env_file:
+      - .env.sample
+      - .env.dev
+    depends_on:
+      - backend
+      - mongo
+      - redis
+    command: ["uv", "run", "celery", "-A", "chitragupta", "beat", "--loglevel=info"]
+
+  flower:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: always
+    ports:
+      - 5555:5555
+    env_file:
+      - .env.sample
+      - .env.dev
+    depends_on:
+      - backend
+      - mongo
+      - redis
+      - celery_beat
+    command: ["uv", "run", "celery", "-A", "chitragupta", "flower", "--port=5555"]
+    volumes:
+      - .:/home/root/
 
 volumes:
   redis-data:

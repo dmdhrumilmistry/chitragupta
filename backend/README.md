@@ -34,3 +34,17 @@ django-admin startproject 5_2_example --template https://github.com/mongodb-labs
   ```bash
   celery -A chitragupta -b "redis://default:example@localhost:6379/2" worker -l info --pool=solo
   ```
+
+## Dev Env 
+
+* Start instances
+
+  ```bash
+  docker compose up -d --build && docker compose logs -f
+  ```
+
+* Get python shell
+
+  ```bash
+  docker compose exec -it backend uv run python manage.py shell -i ipython
+  ```

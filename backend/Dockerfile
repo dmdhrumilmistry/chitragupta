@@ -9,7 +9,7 @@ RUN mkdir -p .cache/uv
 RUN curl -LsSf https://astral.sh/uv/install.sh > install.sh && sh install.sh && rm install.sh
 ENV PATH="/home/root/.cargo/bin:/home/root/app/.venv/bin:/root/.local/bin:$PATH"
 
-RUN uv python install 3.13 
+RUN uv python install 3.12 
 RUN uv venv
 RUN --mount=type=cache,target=/root/.cache/uv \
     --mount=type=bind,source=uv.lock,target=uv.lock \

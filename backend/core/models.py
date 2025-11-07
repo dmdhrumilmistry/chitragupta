@@ -7,6 +7,7 @@ repo_platform_choices = [
     # ("bitbucket", "Bitbucket"),
 ]
 
+
 class RepoOwner(models.Model):
     id = ObjectIdAutoField(primary_key=True)
     name = models.CharField(max_length=100, unique=True)
@@ -48,5 +49,39 @@ class Repo(models.Model):
         ordering = ["-created_at"]
 
     def __str__(self):
-        return f"{self.platform}({self.owner.name}/{self.name}@{self.latest_commit_sha})"
+        return (
+            f"{self.platform}({self.owner.name}/{self.name}@{self.latest_commit_sha})"
+        )
 
+    def get_https_clone_url(self, token: str):
+        if self.platform == "github" and self.is_private:
+            return f"https://x-access-token:{token}@{self.owner.name}/{self.name}.git"
+
+        return self.https_url
+
+
+class SecretScanResult(models.Model):
+    id = ObjectIdAutoField(primary_key=True)
+    file_path = models.CharField(max_length=500)
+    file_line = models.IntegerField(null=True, blank=True)
+    committer_email = models.TextField(null=True, blank=True)
+    commit_datetime = models.DateTimeField(null=True, blank=True)
+    is_verified = models.BooleanField(default=False)
+    repo = models.ForeignKey(Repo, on_delete=models.CASCADE, null=True, blank=True)
+
+    secret_type = models.CharField(max_length=100)
+    secret_value = models.TextField()
+    secret_value_rawv2 = models.TextField(null=True, blank=True)
+
+    additional_info = models.JSONField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    is_rotated = models.BooleanField(default=False)
+    rotated_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"SecretScanResult({self.file_path}, {self.secret_type})"

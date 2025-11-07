@@ -71,6 +71,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    "whitenoise.middleware.WhiteNoiseMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
@@ -167,6 +168,7 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
 
 STATIC_URL = "static/"
+STATIC_ROOT = BASE_DIR / "staticfiles"
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
@@ -194,6 +196,21 @@ REST_FRAMEWORK = {
     "PAGE_SIZE": 10,  # Default page size
 }
 
+# CELERY SETTINGS
+CELERY_BROKER_URL = environ.get("CELERY_BROKER_URL")
+CELERY_TASK_TRACK_STARTED = True
+CELERY_TASK_TIME_LIMIT = 30 * 60  # 30 minutes
+CELERY_ACCEPT_CONTENT = ["json"]
+CELERY_TASK_SERIALIZER = "json"
+CELERY_RESULT_SERIALIZER = "json"
+CELERY_TIMEZONE = "UTC"
+CELERY_BEAT_SCHEDULER = "redbeat.RedBeatScheduler"
+REDBEAT_REDIS_URL = CELERY_BROKER_URL  # or a dedicated DB/URL
+REDBEAT_KEY_PREFIX = "redbeat:"  # optional
+
+## Application Level Configs
+
+# Github App Config
 GITHUB_APPS_CONFIG = {
     "default": {
         "client_id": environ.get("GITHUB_APP_CLIENT_ID"),
@@ -203,11 +220,3 @@ GITHUB_APPS_CONFIG = {
     }
 }
 
-# CELERY SETTINGS
-CELERY_BROKER_URL = environ.get("CELERY_BROKER_URL")
-CELERY_TASK_TRACK_STARTED = True
-CELERY_TASK_TIME_LIMIT = 30 * 60  # 30 minutes
-CELERY_ACCEPT_CONTENT = ["json"]
-CELERY_TASK_SERIALIZER = "json"
-CELERY_RESULT_SERIALIZER = "json"
-CELERY_TIMEZONE = "UTC"

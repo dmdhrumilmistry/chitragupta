@@ -1,10 +1,19 @@
 from datetime import datetime
+from django.conf import settings
+
 from github import Github
 from github.PaginatedList import PaginatedList
 from github.Repository import Repository
 from github.Commit import Commit
 from github.Auth import AppAuth
 
+def get_default_github_app():
+    default_config = settings.GITHUB_APPS_CONFIG.get("default")
+    return GitHubUtils(
+        github_app_id=default_config["client_id"],
+        app_private_key=default_config["private_key"],
+        installation_id=int(default_config["installation_id"]),
+    )
 
 class GitHubUtils:
     def __init__(self, github_app_id: str, app_private_key: str, installation_id:int):
@@ -18,7 +27,6 @@ class GitHubUtils:
 
 
 if __name__ == "__main__":
-    from django.conf import settings
     default_config = settings.GITHUB_APPS_CONFIG.get("default")
     gh = GitHubUtils(
         github_app_id=default_config["client_id"],
