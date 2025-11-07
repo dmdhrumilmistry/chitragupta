@@ -1,7 +1,7 @@
 # Django MongoDB Backend - Project Template
 
 This is a Django project starter template for the Django MongoDB Backend.
-In order to use it with your version of Django: 
+In order to use it with your version of Django:
 
 - Find your Django version. To do so from the command line, make sure you
   have Django installed and run:
@@ -14,7 +14,7 @@ django-admin --version
 ## Create the Django project
 
 From your shell, run the following command to create a new Django project
-replacing the `{{ project_name }}` and `{{ version }}` sections. 
+replacing the `{{ project_name }}` and `{{ version }}` sections.
 
 ```bash
 django-admin startproject {{ project_name }} --template https://github.com/mongodb-labs/django-mongodb-project/archive/refs/heads/{{ version }}.x.zip
@@ -26,3 +26,11 @@ the command would look like this:
 ```bash
 django-admin startproject 5_2_example --template https://github.com/mongodb-labs/django-mongodb-project/archive/refs/heads/5.2.x.zip
 ```
+
+## Celery
+
+- Start celery worker on windows
+
+  ```bash
+  celery -A chitragupta -b "redis://default:example@localhost:6379/2" worker -l info --pool=solo
+  ```
