@@ -212,7 +212,11 @@ REDBEAT_KEY_PREFIX = "redbeat:"
 CELERY_BEAT_SCHEDULE = {
     "sync_github_org_users": {
         "task": "core.tasks.sync_github_org_users",
-        "schedule": crontab(minute="*/5"),  # every 5 minutes
+        "schedule": crontab(hour=0, minute=0),  # triggers at 12:00 AM
+    },
+    "trigger_trufflehog_scan_for_all_repos": {
+        "task": "core.tasks.trigger_trufflehog_scan_for_all_repos",
+        "schedule": crontab(hour=0, minute=30),  # triggers at 12:30 AM
     },
 }
 
