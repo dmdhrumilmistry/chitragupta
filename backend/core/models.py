@@ -16,6 +16,7 @@ class RepoOwner(models.Model):
         choices=repo_platform_choices,
         default="github",
     )
+    is_organization = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

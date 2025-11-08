@@ -154,3 +154,30 @@ def scan_repo(repo_pk: str, concurrency: int = 10, only_verified: bool = False):
         return {"ok": False, "reason": "scan_error"}
 
     return {"ok": True}
+
+@shared_task(bind=True)
+def sync_github_org_users():
+    organizations = RepoOwner.objects.filter(is_organization=True)
+    
+    gh: GitHubUtils = get_default_github_app()
+    for org in organizations:
+        if org.platform != "github":
+            logger.info(f"Skipping non-GitHub organization: {org.name}")
+            continue
+
+        for member in gh.get_org_users(org.name):
+            try:
+                owner, created = RepoOwner.objects.get_or_create(
+                    name=member.login,
+                    is_organization=False,
+                    platform=org.platform,
+                )
+
+                if created:
+                    logger.info(f"Created RepoOwner for user {member.login}: {owner.id}")
+                else:
+                    logger.info(f"RepoOwner already exists for user {member.login}: {owner.id}")
+            except Exception:
+                logger.error(f"Error creating RepoOwner for user {member.login}", exc_info=True)
+
+    return {"ok": True}

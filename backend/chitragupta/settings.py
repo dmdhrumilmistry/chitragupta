@@ -16,6 +16,7 @@ from os import environ
 from dotenv import load_dotenv
 
 from django.core.management.utils import get_random_secret_key
+from celery.schedules import crontab
 
 load_dotenv()  # take environment variables from .env file
 
@@ -205,8 +206,15 @@ CELERY_TASK_SERIALIZER = "json"
 CELERY_RESULT_SERIALIZER = "json"
 CELERY_TIMEZONE = "UTC"
 CELERY_BEAT_SCHEDULER = "redbeat.RedBeatScheduler"
-REDBEAT_REDIS_URL = CELERY_BROKER_URL  # or a dedicated DB/URL
-REDBEAT_KEY_PREFIX = "redbeat:"  # optional
+REDBEAT_REDIS_URL = CELERY_BROKER_URL
+REDBEAT_KEY_PREFIX = "redbeat:"
+
+CELERY_BEAT_SCHEDULE = {
+    "sync_github_org_users": {
+        "task": "core.tasks.sync_github_org_users",
+        "schedule": crontab(minute="*/5"),  # every 5 minutes
+    },
+}
 
 ## Application Level Configs
 
@@ -219,4 +227,3 @@ GITHUB_APPS_CONFIG = {
         "installation_id": environ.get("GITHUB_APP_INSTALLATION_ID"),
     }
 }
-

@@ -2,6 +2,8 @@ from datetime import datetime
 from django.conf import settings
 
 from github import Github
+from github.Organization import Organization
+from github.NamedUser import NamedUser
 from github.PaginatedList import PaginatedList
 from github.Repository import Repository
 from github.Commit import Commit
@@ -19,12 +21,14 @@ class GitHubUtils:
     def __init__(self, github_app_id: str, app_private_key: str, installation_id:int):
         self.app_auth = AppAuth(github_app_id, app_private_key)
         self.auth = self.app_auth.get_installation_auth(installation_id)
-        self.client = Github(auth=self.auth)
+        self.client: Github = Github(auth=self.auth)
 
     def get_owner_repos(self, owner: str) -> PaginatedList[Repository]:
         return self.client.get_user(owner).get_repos()
-    
 
+    def get_org_users(self, org_name: str) -> PaginatedList[NamedUser]:
+        org: Organization = self.client.get_organization(org_name)
+        return org.get_members()
 
 if __name__ == "__main__":
     default_config = settings.GITHUB_APPS_CONFIG.get("default")
