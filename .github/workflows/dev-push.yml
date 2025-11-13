@@ -1,4 +1,4 @@
-name: "Build and Push Dev/main OWASP OFFAT Docker Images to DockerHub"
+name: "Build and Push Dev/main Docker Images to DockerHub"
 
 on:
   push:
@@ -31,7 +31,7 @@ jobs:
         uses: docker/build-push-action@v3
         with:
           context: ./backend/
-          file: ./backend/DockerFile
+          file: ./backend/Dockerfile
           push: true
           tags: ${{ secrets.DOCKERHUB_USERNAME }}/chitragupta:${{ github.head_ref || github.ref_name }}
           platforms: linux/amd64,linux/arm64
