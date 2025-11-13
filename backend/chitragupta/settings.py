@@ -32,7 +32,14 @@ SECRET_KEY = environ.get("DJANGO_SECRET_KEY", get_random_secret_key())
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = environ.get("DJANGO_DEBUG", "True").lower() == "true"
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = environ.get("ALLOWED_HOSTS", "*").split(",")
+
+CSRF_TRUSTED_ORIGINS_VARIABLE = [
+    origin.strip()
+    for origin in environ.get(
+        "CSRF_TRUSTED_ORIGINS", "http://localhost:8000"
+    ).split(",")
+]
 
 # Logging
 

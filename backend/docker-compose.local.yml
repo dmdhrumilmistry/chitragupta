@@ -24,7 +24,9 @@ services:
       REDIS_PASSWORD: ${REDIS_PASSWORD:-example}
 
   backend:
-    image: dmdhrumilmistry/chitragupta:${BACKEND_IMAGE_TAG:-main}
+    build:
+      context: .
+      dockerfile: Dockerfile
     restart: always
     ports:
       - 8000:8000
@@ -40,7 +42,9 @@ services:
       sh -c "uv run python manage.py migrate && uv run python manage.py runserver 0.0.0.0:8000"
 
   celery_worker:
-    image: dmdhrumilmistry/chitragupta:${BACKEND_IMAGE_TAG:-main}
+    build:
+      context: .
+      dockerfile: Dockerfile
     restart: always
     env_file:
       - .env.sample
@@ -54,7 +58,9 @@ services:
       - .:/home/root/
       
   celery_beat:
-    image: dmdhrumilmistry/chitragupta:${BACKEND_IMAGE_TAG:-main}
+    build:
+      context: .
+      dockerfile: Dockerfile
     restart: always
     env_file:
       - .env.sample
@@ -66,7 +72,9 @@ services:
     command: ["uv", "run", "celery", "-A", "chitragupta", "beat", "--loglevel=info"]
 
   flower:
-    image: dmdhrumilmistry/chitragupta:${BACKEND_IMAGE_TAG:-main}
+    build:
+      context: .
+      dockerfile: Dockerfile
     restart: always
     ports:
       - 5555:5555
