@@ -34,7 +34,7 @@ DEBUG = environ.get("DJANGO_DEBUG", "True").lower() == "true"
 
 ALLOWED_HOSTS = environ.get("ALLOWED_HOSTS", "*").split(",")
 
-CSRF_TRUSTED_ORIGINS_VARIABLE = [
+CSRF_TRUSTED_ORIGINS = [
     origin.strip()
     for origin in environ.get(
         "CSRF_TRUSTED_ORIGINS", "http://localhost:8000"
