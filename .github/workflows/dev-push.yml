@@ -35,4 +35,13 @@ jobs:
           push: true
           tags: ${{ secrets.DOCKERHUB_USERNAME }}/chitragupta:${{ github.head_ref || github.ref_name }}
           platforms: linux/amd64,linux/arm64
+
+      - name: Build and push commit hash docker image
+        uses: docker/build-push-action@v3
+        with:
+          context: ./backend/
+          file: ./backend/Dockerfile
+          push: true
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/chitragupta:${{ github.sha }}
+          platforms: linux/amd64,linux/arm64
       
