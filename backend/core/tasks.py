@@ -188,5 +188,5 @@ def trigger_trufflehog_scan_for_all_repos(self, concurrency: int = 10, only_veri
     total_repos = repos.count()
     for index, repo in enumerate(repos):
         logger.info(f"Triggering scan for repo {repo} ({index + 1}/{total_repos})")
-        scan_repo.delay(repo.pk, concurrency=concurrency, only_verified=only_verified)
+        scan_repo.delay(str(repo.pk), concurrency=concurrency, only_verified=only_verified)
     return {"ok": True, "total_repos_triggered": total_repos}
