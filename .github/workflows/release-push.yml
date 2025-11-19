@@ -1,5 +1,8 @@
 name: "Release: Build and Push Docker Images to DockerHub"
 
+permissions:
+  contents: read
+
 on:
   release:
     types: [published]
