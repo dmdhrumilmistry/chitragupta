@@ -156,7 +156,7 @@ def scan_repo(repo_pk: str, concurrency: int = 10, only_verified: bool = False):
     return {"ok": True}
 
 @shared_task(bind=True)
-def sync_github_org_users():
+def sync_github_org_users(self):
     organizations = RepoOwner.objects.filter(is_organization=True)
     
     gh: GitHubUtils = get_default_github_app()
