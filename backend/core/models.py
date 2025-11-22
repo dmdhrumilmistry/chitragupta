@@ -44,7 +44,8 @@ class Repo(models.Model):
         default="github",
     )
     latest_commit_sha = models.CharField(max_length=40)
-    previous_commit_sha = models.CharField(max_length=40, null=True, blank=True)
+    previous_commit_sha = models.CharField(
+        max_length=40, null=True, blank=True)
 
     class Meta:
         ordering = ["-created_at"]
@@ -68,7 +69,8 @@ class SecretScanResult(models.Model):
     committer_email = models.TextField(null=True, blank=True)
     commit_datetime = models.DateTimeField(null=True, blank=True)
     is_verified = models.BooleanField(default=False)
-    repo = models.ForeignKey(Repo, on_delete=models.CASCADE, null=True, blank=True)
+    repo = models.ForeignKey(
+        Repo, on_delete=models.CASCADE, null=True, blank=True)
 
     secret_type = models.CharField(max_length=100)
     secret_value = models.TextField()
@@ -80,6 +82,8 @@ class SecretScanResult(models.Model):
 
     is_rotated = models.BooleanField(default=False)
     rotated_at = models.DateTimeField(null=True, blank=True)
+
+    is_false_positive = models.BooleanField(default=False)
 
     class Meta:
         ordering = ["-created_at"]

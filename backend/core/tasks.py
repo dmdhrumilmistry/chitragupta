@@ -19,6 +19,9 @@ logger = getLogger(__name__)
 
 @shared_task
 def fetch_owner_repos_task(instance_pk: str):
+    """
+    Fetches all repositories for a user or organization.
+    """
     try:
         owner = RepoOwner.objects.get(  # pylint: disable=no-member
             pk=instance_pk)
@@ -58,6 +61,9 @@ def fetch_owner_repos_task(instance_pk: str):
 
 @shared_task
 def scan_repo(repo_pk: str, concurrency: int = 10, only_verified: bool = False):
+    """
+    Triggers Trufflehog scan for a repository.
+    """
     try:
         repo = Repo.objects.get(pk=repo_pk)  # pylint: disable=no-member
     except Repo.DoesNotExist:  # pylint: disable=no-member
@@ -176,6 +182,9 @@ def scan_repo(repo_pk: str, concurrency: int = 10, only_verified: bool = False):
 
 @shared_task(bind=True)
 def sync_github_org_users(self):  # pylint: disable=unused-argument
+    """
+    Sync GitHub organization users.
+    """
     organizations = RepoOwner.objects.filter(  # pylint: disable=no-member
         is_organization=True)
 
@@ -221,6 +230,9 @@ def trigger_trufflehog_scan_for_all_repos(
     concurrency: int = 10,
     only_verified: bool = False
 ):
+    """
+    Trigger Trufflehog scan for all repositories.
+    """
     repos = Repo.objects.all()  # pylint: disable=no-member
     total_repos = repos.count()
     for index, repo in enumerate(repos):
@@ -236,3 +248,24 @@ def trigger_trufflehog_scan_for_all_repos(
             only_verified=only_verified
         )
     return {"ok": True, "total_repos_triggered": total_repos}
+
+
+@shared_task(bind=True)
+def sync_user_repos(self):  # pylint: disable=unused-argument
+    """
+    Syncs all repositories for a user.
+    """
+    users = RepoOwner.objects.filter(  # pylint: disable=no-member
+        is_organization=False)
+
+    total_users = users.count()
+    for index, user in enumerate(users):
+        logger.info(
+            "Syncing repos for user %s (%s/%s)",
+            user,
+            index + 1,
+            total_users
+        )
+        fetch_owner_repos_task.delay(str(user.pk))
+
+    return {"ok": True, "total_users_triggered": total_users}

@@ -3,6 +3,7 @@ from hashlib import sha256
 from django.core.cache import cache
 from rest_framework.response import Response
 
+
 class FilteredCacheMixin:
     """
     Cache list responses keyed by allowed filterset fields + page + a version token.
@@ -20,11 +21,13 @@ class FilteredCacheMixin:
     def make_cache_key(self, request):
         allowed = self.get_cache_filters()
         # collect allowed params; keep multi-valued params as lists
-        params = {k: request.GET.getlist(k) for k in allowed if k in request.GET}
+        params = {k: request.GET.getlist(k)
+                  for k in allowed if k in request.GET}
         # include page/limit (DRF pagination) and path to avoid cross-view collisions
         page = request.GET.get("page", "")
         page_size = request.GET.get("page_size", "")
-        payload = {"path": request.path, "params": params, "page": page, "page_size": page_size}
+        payload = {"path": request.path, "params": params,
+                   "page": page, "page_size": page_size}
         s = dumps(payload, sort_keys=True, separators=(",", ":"))
         h = sha256(s.encode()).hexdigest()
         version = ""

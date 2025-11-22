@@ -2,6 +2,7 @@ from django.contrib import admin
 
 from .models import Repo, RepoOwner, SecretScanResult
 
+
 @admin.register(Repo)
 class RepoAdmin(admin.ModelAdmin):
     usable_fields = [
@@ -35,8 +36,10 @@ class SecretScanResultAdmin(admin.ModelAdmin):
         "repo",
         "commit_datetime",
         "created_at",
+        "is_false_positive",
     ]
-    search_fields = ["file_path", "committer_email", "secret_value"]  # removed "owner"
+    search_fields = ["file_path", "committer_email",
+                     "secret_value"]  # removed "owner"
     list_display = [
         "file_path",
         "file_line",
@@ -47,6 +50,7 @@ class SecretScanResultAdmin(admin.ModelAdmin):
         "secret_type",
         "created_at",
         "repo_owner",  # show owner via related repo
+        "is_false_positive",
     ]
 
     def repo_owner(self, obj):
