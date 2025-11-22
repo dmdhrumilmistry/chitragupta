@@ -1,12 +1,17 @@
+"""
+This module contains tasks used throughout the application.
+"""
+
 from datetime import datetime
-from dateutil import parser
 from json import loads, JSONDecodeError
 from logging import getLogger
 from subprocess import run, PIPE, STDOUT
 
+from dateutil import parser
 from celery import shared_task
 
 from core.models import RepoOwner, Repo, SecretScanResult
+from core.exceptions import TrufflehogScanError
 from utils.github import GitHubUtils, get_default_github_app
 
 logger = getLogger(__name__)
@@ -15,9 +20,10 @@ logger = getLogger(__name__)
 @shared_task
 def fetch_owner_repos_task(instance_pk: str):
     try:
-        owner = RepoOwner.objects.get(pk=instance_pk)
-        logger.info(f"Fetched RepoOwner: {owner}")
-    except RepoOwner.DoesNotExist:
+        owner = RepoOwner.objects.get(  # pylint: disable=no-member
+            pk=instance_pk)
+        logger.info("Fetched RepoOwner: %s", owner)
+    except RepoOwner.DoesNotExist:  # pylint: disable=no-member
         return {"ok": False, "reason": "instance_not_found"}
 
     gh: GitHubUtils = get_default_github_app()
@@ -25,7 +31,7 @@ def fetch_owner_repos_task(instance_pk: str):
     # until = datetime.now()
     for repo in gh.get_owner_repos(owner.name):
         try:
-            obj, created = Repo.objects.get_or_create(
+            obj, created = Repo.objects.get_or_create(  # pylint: disable=no-member
                 https_url=repo.clone_url,
                 ssh_url=repo.ssh_url,
                 owner=owner,
@@ -38,12 +44,13 @@ def fetch_owner_repos_task(instance_pk: str):
                 },
             )
             if created:
-                logger.info(f"Created repo: {repo.full_name}")
+                logger.info("Created repo: %s", repo.full_name)
             else:
-                logger.info(f"Repo already exists with id {obj.id}: {repo.full_name}")
-        except Exception:
-            logger.error(f"Error creating repo {repo.full_name}", exc_info=True)
-
+                logger.info(
+                    "Repo already exists with id %s: %s", str(obj.id), repo.full_name)
+        except Exception:  # pylint: disable=broad-except
+            logger.error(
+                "Error creating repo %s", repo.full_name, exc_info=True)
         # commit_details = repo.get_commits(until=until)
         # process commit_details...
     return {"ok": True}
@@ -52,9 +59,9 @@ def fetch_owner_repos_task(instance_pk: str):
 @shared_task
 def scan_repo(repo_pk: str, concurrency: int = 10, only_verified: bool = False):
     try:
-        repo = Repo.objects.get(pk=repo_pk)
-    except Repo.DoesNotExist:
-        logger.error(f"Repo with pk {repo_pk} does not exist.")
+        repo = Repo.objects.get(pk=repo_pk)  # pylint: disable=no-member
+    except Repo.DoesNotExist:  # pylint: disable=no-member
+        logger.error("Repo with pk %s does not exist.", repo_pk)
         return {"ok": False, "reason": "repo_not_found"}
 
     gh = get_default_github_app()
@@ -77,8 +84,11 @@ def scan_repo(repo_pk: str, concurrency: int = 10, only_verified: bool = False):
     if only_verified:
         command.append("--only-verified")
 
-    # Placeholder for scanning logic
-    logger.info(f"Scanning repository: {repo} with command: {' '.join(command)}")
+    logger.info(
+        "Scanning repository: %s with command: %s",
+        repo,
+        " ".join(command),
+    )
     try:
         trufflehog_output = run(
             command,
@@ -94,8 +104,9 @@ def scan_repo(repo_pk: str, concurrency: int = 10, only_verified: bool = False):
             trufflehog_output.stdout,
         )
         if "encountered errors during scan" in trufflehog_output.stdout:
-            raise Exception(
-                f"Trufflehog scan failed for repo {repo.https_url}, error: {trufflehog_output.stdout}"
+            raise TrufflehogScanError(
+                f"Trufflehog scan failed for repo {repo.https_url}, "
+                f"error: {trufflehog_output.stdout}"
             )
 
         # Process trufflehog_output.stdout to extract secrets
@@ -108,12 +119,13 @@ def scan_repo(repo_pk: str, concurrency: int = 10, only_verified: bool = False):
 
             try:
                 result_data = loads(line)
-                git_data = result_data.get("SourceMetadata", {}).get("Data", {}).get("Git", {})
-                
+                git_data = result_data.get("SourceMetadata", {}).get(
+                    "Data", {}).get("Git", {})
+
                 commit_timestamp = git_data.get("timestamp")
                 commit_datetime = parser.parse(commit_timestamp)
 
-                secret_result, created = SecretScanResult.objects.get_or_create(
+                secret_result, created = SecretScanResult.objects.get_or_create(  # pylint: disable=no-member
                     file_path=git_data.get("file"),
                     file_line=git_data.get("line"),
                     committer_email=git_data.get("email"),
@@ -127,15 +139,18 @@ def scan_repo(repo_pk: str, concurrency: int = 10, only_verified: bool = False):
                 )
 
                 if created:
-                    logger.info(f"Created SecretScanResult: {secret_result}")
+                    logger.info("Created SecretScanResult: %s", secret_result)
                 else:
-                    logger.info(f"SecretScanResult already exists: {secret_result}")
-                
+                    logger.info(
+                        "SecretScanResult already exists: %s", secret_result)
+
             except JSONDecodeError:
-                logger.warning(f"Failed to decode JSON line: {line}")
-            except Exception:
+                logger.warning("Failed to decode JSON line: %s", line)
+            except Exception:  # pylint: disable=broad-except
                 logger.error(
-                    f"Error saving SecretScanResult from line: {line}", exc_info=True
+                    "Error saving SecretScanResult from line: %s",
+                    line,
+                    exc_info=True
                 )
 
         # update repo commit SHAs if scan was successful
@@ -147,46 +162,77 @@ def scan_repo(repo_pk: str, concurrency: int = 10, only_verified: bool = False):
         )
         repo.save()
 
-    except Exception:
+    except Exception:  # pylint: disable=broad-except
         logger.error(
-            f"Error scanning repo {repo} with command: {command}", exc_info=True
+            "Error scanning repo %s with command: %s",
+            repo,
+            command,
+            exc_info=True
         )
         return {"ok": False, "reason": "scan_error"}
 
     return {"ok": True}
 
+
 @shared_task(bind=True)
-def sync_github_org_users(self):
-    organizations = RepoOwner.objects.filter(is_organization=True)
-    
+def sync_github_org_users(self):  # pylint: disable=unused-argument
+    organizations = RepoOwner.objects.filter(  # pylint: disable=no-member
+        is_organization=True)
+
     gh: GitHubUtils = get_default_github_app()
     for org in organizations:
         if org.platform != "github":
-            logger.info(f"Skipping non-GitHub organization: {org.name}")
+            logger.info("Skipping non-GitHub organization: %s", org.name)
             continue
 
         for member in gh.get_org_users(org.name):
             try:
-                owner, created = RepoOwner.objects.get_or_create(
+                owner, created = RepoOwner.objects.get_or_create(  # pylint: disable=no-member
                     name=member.login,
                     is_organization=False,
                     platform=org.platform,
                 )
 
                 if created:
-                    logger.info(f"Created RepoOwner for user {member.login}: {owner.id}")
+                    logger.info(
+                        "Created RepoOwner for user %s: %s",
+                        member.login,
+                        owner.id
+                    )
                 else:
-                    logger.info(f"RepoOwner already exists for user {member.login}: {owner.id}")
-            except Exception:
-                logger.error(f"Error creating RepoOwner for user {member.login}", exc_info=True)
+                    logger.info(
+                        "RepoOwner already exists for user %s: %s",
+                        member.login,
+                        owner.id
+                    )
+            except Exception:  # pylint: disable=broad-except
+                logger.error(
+                    "Error creating RepoOwner for user %s",
+                    member.login,
+                    exc_info=True
+                )
 
     return {"ok": True}
 
+
 @shared_task(bind=True)
-def trigger_trufflehog_scan_for_all_repos(self, concurrency: int = 10, only_verified: bool = False):
-    repos = Repo.objects.all()
+def trigger_trufflehog_scan_for_all_repos(
+    self,  # pylint: disable=unused-argument
+    concurrency: int = 10,
+    only_verified: bool = False
+):
+    repos = Repo.objects.all()  # pylint: disable=no-member
     total_repos = repos.count()
     for index, repo in enumerate(repos):
-        logger.info(f"Triggering scan for repo {repo} ({index + 1}/{total_repos})")
-        scan_repo.delay(str(repo.pk), concurrency=concurrency, only_verified=only_verified)
+        logger.info(
+            "Triggering scan for repo %s (%s/%s)",
+            repo,
+            index + 1,
+            total_repos
+        )
+        scan_repo.delay(
+            str(repo.pk),
+            concurrency=concurrency,
+            only_verified=only_verified
+        )
     return {"ok": True, "total_repos_triggered": total_repos}
