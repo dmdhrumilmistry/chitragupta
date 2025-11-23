@@ -217,6 +217,10 @@ REDBEAT_REDIS_URL = CELERY_BROKER_URL
 REDBEAT_KEY_PREFIX = "redbeat:"
 
 CELERY_BEAT_SCHEDULE = {
+    "sync_user_repos": {
+        "task": "core.tasks.sync_user_repos",
+        "schedule": crontab(hour=0, minute=0),  # triggers at 12:00 AM
+    },
     "sync_github_org_users": {
         "task": "core.tasks.sync_github_org_users",
         "schedule": crontab(hour=0, minute=0),  # triggers at 12:00 AM
@@ -227,7 +231,7 @@ CELERY_BEAT_SCHEDULE = {
     },
 }
 
-## Application Level Configs
+# Application Level Configs
 
 # Github App Config
 GITHUB_APPS_CONFIG = {
