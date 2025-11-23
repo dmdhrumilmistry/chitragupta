@@ -9,10 +9,8 @@ from rest_framework.renderers import JSONOpenAPIRenderer
 from rest_framework.viewsets import ModelViewSet
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from rest_framework.permissions import IsAdminUser
-from rest_framework import status
-from django.utils.decorators import method_decorator
-from django.views.decorators.csrf import csrf_exempt
+from rest_framework.permissions import AllowAny
+from rest_framework.status import HTTP_200_OK, HTTP_500_INTERNAL_SERVER_ERROR, HTTP_400_BAD_REQUEST
 
 
 from .mixins import FilteredCacheMixin
@@ -73,7 +71,9 @@ class TriggerTaskView(APIView):
     """
     View for triggering Celery tasks.
     """
-    permission_classes = [IsAdminUser]
+    # TODO: implement token authentication
+    authentication_classes = []
+    permission_classes = [AllowAny]
 
     ALLOWED_TASKS = {
         "fetch_owner_repos_task": fetch_owner_repos_task,
@@ -83,7 +83,6 @@ class TriggerTaskView(APIView):
         "sync_user_repos": sync_user_repos,
     }
 
-    @method_decorator(csrf_exempt, name='dispatch')
     def post(self, request):
         """
         Trigger a Celery task based on the provided task name and arguments.
@@ -95,7 +94,7 @@ class TriggerTaskView(APIView):
         if task_name not in self.ALLOWED_TASKS:
             return Response(
                 {"error": f"Task '{task_name}' is not allowed or does not exist."},
-                status=status.HTTP_400_BAD_REQUEST,
+                status=HTTP_400_BAD_REQUEST,
             )
 
         task_func = self.ALLOWED_TASKS[task_name]
@@ -111,7 +110,7 @@ class TriggerTaskView(APIView):
             )
             return Response(
                 {"task_id": result.id, "status": "Task triggered successfully"},
-                status=status.HTTP_200_OK,
+                status=HTTP_200_OK,
             )
         except Exception:  # pylint: disable=broad-except
             logger.error(
@@ -119,5 +118,5 @@ class TriggerTaskView(APIView):
             )
             return Response(
                 {"error": "Failed to trigger task"},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                status=HTTP_500_INTERNAL_SERVER_ERROR,
             )
