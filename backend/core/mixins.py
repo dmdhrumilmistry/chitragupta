@@ -1,3 +1,7 @@
+"""
+Mixins for Chitragupta API.
+"""
+
 from json import dumps
 from hashlib import sha256
 from django.core.cache import cache
@@ -16,9 +20,15 @@ class FilteredCacheMixin:
     cache_version_key = None  # e.g. "repo_version"
 
     def get_cache_filters(self):
+        """
+        Return the list of allowed cache filters.
+        """
         return list(self.cache_filters or getattr(self, "filterset_fields", []) or [])
 
     def make_cache_key(self, request):
+        """
+        Return the cache key for the given request.
+        """
         allowed = self.get_cache_filters()
         # collect allowed params; keep multi-valued params as lists
         params = {k: request.GET.getlist(k)
@@ -36,6 +46,9 @@ class FilteredCacheMixin:
         return f"fcache:{self.__class__.__name__}:{h}:v={version}"
 
     def list(self, request, *args, **kwargs):
+        """
+        Return the list of objects.
+        """
         # only apply caching to list() to avoid interfering with other actions
         key = self.make_cache_key(request)
         cached = cache.get(key)

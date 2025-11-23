@@ -11,6 +11,8 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAdminUser
 from rest_framework import status
+from django.utils.decorators import method_decorator
+from django.views.decorators.csrf import csrf_exempt
 
 
 from .mixins import FilteredCacheMixin
@@ -81,6 +83,7 @@ class TriggerTaskView(APIView):
         "sync_user_repos": sync_user_repos,
     }
 
+    @method_decorator(csrf_exempt, name='dispatch')
     def post(self, request):
         """
         Trigger a Celery task based on the provided task name and arguments.
