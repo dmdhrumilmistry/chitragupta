@@ -47,7 +47,7 @@ def fetch_owner_repos_task(instance_pk: str):
                 name=repo.name,
                 defaults={
                     "is_fork": repo.fork,
-                    "is_private": repo.private == "private",
+                    "is_private": repo.private,
                     "size_in_kb": repo.size,
                     "platform": owner.platform,
                 },
