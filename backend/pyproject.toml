@@ -10,6 +10,7 @@ dependencies = [
     "django>=5.2.7",
     "django-filter>=25.2",
     "django-mongodb-backend>=5.2.1",
+    "django-sanitizers>=0.0.1",
     "djangorestframework>=3.16.1",
     "drf-spectacular>=0.28.0",
     "flower>=2.0.1",

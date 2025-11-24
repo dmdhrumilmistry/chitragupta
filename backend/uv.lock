@@ -1,5 +1,5 @@
 version = 1
-revision = 2
+revision = 3
 requires-python = ">=3.11"
 resolution-markers = [
     "python_full_version >= '3.14' and platform_python_implementation != 'PyPy'",
@@ -76,6 +76,18 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/b9/6a/1405343016bce8354b29d90aad6b0bf6485b5e60404516e4b9a3a9646cf0/billiard-4.2.2.tar.gz", hash = "sha256:e815017a062b714958463e07ba15981d802dc53d41c5b69d28c5a7c238f8ecf3", size = 155592, upload-time = "2025-09-20T14:44:40.456Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/a6/80/ef8dff49aae0e4430f81842f7403e14e0ca59db7bbaf7af41245b67c6b25/billiard-4.2.2-py3-none-any.whl", hash = "sha256:4bc05dcf0d1cc6addef470723aac2a6232f3c7ed7475b0b580473a9145829457", size = 86896, upload-time = "2025-09-20T14:44:39.157Z" },
+]
+
+[[package]]
+name = "bleach"
+version = "6.3.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "webencodings" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/07/18/3c8523962314be6bf4c8989c79ad9531c825210dd13a8669f6b84336e8bd/bleach-6.3.0.tar.gz", hash = "sha256:6f3b91b1c0a02bb9a78b5a454c92506aa0fdf197e1d5e114d2e00c6f64306d22", size = 203533, upload-time = "2025-10-27T17:57:39.211Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/cd/3a/577b549de0cc09d95f11087ee63c739bba856cd3952697eec4c4bb91350a/bleach-6.3.0-py3-none-any.whl", hash = "sha256:fe10ec77c93ddf3d13a73b035abaac7a9f5e436513864ccdad516693213c65d6", size = 164437, upload-time = "2025-10-27T17:57:37.538Z" },
 ]
 
 [[package]]
@@ -279,6 +291,7 @@ dependencies = [
     { name = "django" },
     { name = "django-filter" },
     { name = "django-mongodb-backend" },
+    { name = "django-sanitizers" },
     { name = "djangorestframework" },
     { name = "drf-spectacular" },
     { name = "flower" },
@@ -298,6 +311,7 @@ requires-dist = [
     { name = "django", specifier = ">=5.2.7" },
     { name = "django-filter", specifier = ">=25.2" },
     { name = "django-mongodb-backend", specifier = ">=5.2.1" },
+    { name = "django-sanitizers", specifier = ">=0.0.1" },
     { name = "djangorestframework", specifier = ">=3.16.1" },
     { name = "drf-spectacular", specifier = ">=0.28.0" },
     { name = "flower", specifier = ">=2.0.1" },
@@ -476,6 +490,19 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/f6/39/2b2e933ef09796c02a59b0bb3f8216eac1d753c67af2102447c617c46445/django_mongodb_backend-5.2.1.tar.gz", hash = "sha256:cc4e585ba408fe9039c252db2c046a448ca7bc40b68342c0b3f738fc23349e0c", size = 170414, upload-time = "2025-09-08T14:49:20.96Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/ba/1d/dd73260afcf097c55ec67394352c605c9bf70cde5fda40113b72d50314cc/django_mongodb_backend-5.2.1-py3-none-any.whl", hash = "sha256:37d1d929e5711ae27c07dec723e7232eb06694c0ef2e5420e646ea67f95b1d1a", size = 106357, upload-time = "2025-09-08T14:49:19.662Z" },
+]
+
+[[package]]
+name = "django-sanitizers"
+version = "0.0.1"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "bleach" },
+    { name = "django" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/ab/6f/33addd37536bf3943d80f9e0cff3fd09cda1c55594d1d4c5decede4cb7d3/django_sanitizers-0.0.1.tar.gz", hash = "sha256:5cad8fafd46b2be521a1fa4dc5b041aa2bed5942a7acec11ffe056c2cd17185b", size = 4166, upload-time = "2025-11-19T12:35:50.727Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/9a/67/963d527a5670990654d02ba0b86f3f0e4e1fc9c3e78794526464b27dc753/django_sanitizers-0.0.1-py3-none-any.whl", hash = "sha256:eb37e79adb9d93e216ca42a667f7026505b452908e007da4af6947d35d0b1dd6", size = 5212, upload-time = "2025-11-19T12:35:49.269Z" },
 ]
 
 [[package]]
@@ -1467,6 +1494,15 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/24/30/6b0809f4510673dc723187aeaf24c7f5459922d01e2f794277a3dfb90345/wcwidth-0.2.14.tar.gz", hash = "sha256:4d478375d31bc5395a3c55c40ccdf3354688364cd61c4f6adacaa9215d0b3605", size = 102293, upload-time = "2025-09-22T16:29:53.023Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/af/b5/123f13c975e9f27ab9c0770f514345bd406d0e8d3b7a0723af9d43f710af/wcwidth-0.2.14-py2.py3-none-any.whl", hash = "sha256:a7bb560c8aee30f9957e5f9895805edd20602f2d7f720186dfd906e82b4982e1", size = 37286, upload-time = "2025-09-22T16:29:51.641Z" },
+]
+
+[[package]]
+name = "webencodings"
+version = "0.5.1"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/0b/02/ae6ceac1baeda530866a85075641cec12989bd8d31af6d5ab4a3e8c92f47/webencodings-0.5.1.tar.gz", hash = "sha256:b36a1c245f2d304965eb4e0a82848379241dc04b865afcc4aab16748587e1923", size = 9721, upload-time = "2017-04-05T20:21:34.189Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/f4/24/2a3e3df732393fed8b3ebf2ec078f05546de641fe1b667ee316ec1dcf3b7/webencodings-0.5.1-py2.py3-none-any.whl", hash = "sha256:a0af1213f3c2226497a97e2b3aa01a7e4bee4f403f95be16fc9acd2947514a78", size = 11774, upload-time = "2017-04-05T20:21:32.581Z" },
 ]
 
 [[package]]
