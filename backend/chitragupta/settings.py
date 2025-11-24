@@ -81,6 +81,7 @@ MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "whitenoise.middleware.WhiteNoiseMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
+    "django_sanitizers.middleware.SanitizerMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
@@ -242,3 +243,11 @@ GITHUB_APPS_CONFIG = {
         "installation_id": environ.get("GITHUB_APP_INSTALLATION_ID"),
     }
 }
+
+# Config for Django-sanitizers
+SANITIZER_ENABLED = True
+SANITIZER_ALLOWED_TAGS = []
+SANITIZER_ALLOWED_ATTRIBUTES = {}
+SANITIZER_STRIP = True
+SANITIZER_SANITIZE_RESPONSE_HTML = False
+SANITIZER_DEBUG = False
