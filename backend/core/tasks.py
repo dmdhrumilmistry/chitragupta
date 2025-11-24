@@ -31,8 +31,14 @@ def fetch_owner_repos_task(instance_pk: str):
 
     gh: GitHubUtils = get_default_github_app()
 
+    repos = []
+    if owner.is_organization:
+        repos = gh.get_org_repos(owner.name)
+    else:
+        repos = gh.get_owner_repos(owner.name)
+
     # until = datetime.now()
-    for repo in gh.get_owner_repos(owner.name):
+    for repo in repos:
         try:
             obj, created = Repo.objects.get_or_create(  # pylint: disable=no-member
                 https_url=repo.clone_url,
