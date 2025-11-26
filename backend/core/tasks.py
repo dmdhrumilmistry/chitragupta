@@ -12,7 +12,7 @@ from celery import shared_task
 
 from core.models import RepoOwner, Repo, SecretScanResult
 from core.exceptions import TrufflehogScanError
-from utils.github import GitHubUtils, get_default_github_app
+from utils.github import GitHubUtils, get_github_app
 
 logger = getLogger(__name__)
 
@@ -29,7 +29,7 @@ def fetch_owner_repos_task(instance_pk: str):
     except RepoOwner.DoesNotExist:  # pylint: disable=no-member
         return {"ok": False, "reason": "instance_not_found"}
 
-    gh: GitHubUtils = get_default_github_app()
+    gh: GitHubUtils = get_github_app()
 
     repos = []
     if owner.is_organization:
@@ -76,7 +76,7 @@ def scan_repo(repo_pk: str, concurrency: int = 10, only_verified: bool = False):
         logger.error("Repo with pk %s does not exist.", repo_pk)
         return {"ok": False, "reason": "repo_not_found"}
 
-    gh = get_default_github_app()
+    gh = get_github_app()
     token = gh.auth.token
 
     until = datetime.now()
@@ -194,7 +194,7 @@ def sync_github_org_users(self):  # pylint: disable=unused-argument
     organizations = RepoOwner.objects.filter(  # pylint: disable=no-member
         is_organization=True)
 
-    gh: GitHubUtils = get_default_github_app()
+    gh: GitHubUtils = get_github_app()
     for org in organizations:
         if org.platform != "github":
             logger.info("Skipping non-GitHub organization: %s", org.name)

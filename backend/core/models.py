@@ -8,6 +8,26 @@ repo_platform_choices = [
 ]
 
 
+class Asset(models.Model):
+    id = ObjectIdAutoField(primary_key=True)
+    name = models.CharField(max_length=150)
+    domain = models.CharField(max_length=255)
+    ip_v4 = models.IPAddressField(null=True, blank=True)
+    ip_v6 = models.GenericIPAddressField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    status = models.CharField(max_length=20, choices=[
+        ("active", "Active"),
+        ("inactive", "Inactive"),
+    ], default="active")
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"{self.name}({self.domain})"
+
+
 class RepoOwner(models.Model):
     id = ObjectIdAutoField(primary_key=True)
     name = models.CharField(max_length=100, unique=True)
@@ -90,3 +110,67 @@ class SecretScanResult(models.Model):
 
     def __str__(self):
         return f"SecretScanResult({self.file_path}, {self.secret_type})"
+
+
+class Vulnerability(models.Model):
+    id = ObjectIdAutoField(primary_key=True)
+    asset = models.ForeignKey(Asset, on_delete=models.CASCADE)
+
+    # Source info
+    source = models.CharField(max_length=100)  # e.g., "dependabot", "codeql"
+    # e.g., alert number or unique identifier from source
+    external_id = models.CharField(max_length=100)
+
+    # Core vulnerability info
+    title = models.CharField(max_length=500)
+    description = models.TextField(null=True, blank=True)
+    severity = models.CharField(max_length=20, choices=[
+        ("low", "Low"),
+        ("medium", "Medium"),
+        ("high", "High"),
+        ("critical", "Critical"),
+        ("info", "Informational"),
+        ("unknown", "Unknown"),
+    ], default="unknown")
+
+    state = models.CharField(max_length=20, choices=[
+        ("open", "Open"),
+        ("fixed", "Fixed"),
+        ("dismissed", "Dismissed"),
+        ("auto_dismissed", "Auto Dismissed"),
+        ("false_positive", "False Positive"),
+        ("rotated", "Rotated"),
+        ("in_progress", "In Progress"),
+        ("accepted_risk", "Accepted Risk")
+    ], default="open")
+
+    # Additional context
+    file_path = models.CharField(max_length=500, null=True, blank=True)
+    line_number = models.IntegerField(null=True, blank=True)
+
+    # For dependency vulnerabilities
+    package_name = models.CharField(max_length=200, null=True, blank=True)
+    affected_version = models.CharField(max_length=100, null=True, blank=True)
+    fixed_version = models.CharField(max_length=100, null=True, blank=True)
+
+    # Vuln metadata
+    cve_ids = models.JSONField(null=True, blank=True)
+    cwe_ids = models.JSONField(null=True, blank=True)
+    cvss_score = models.FloatField(null=True, blank=True)
+    cvss_vector = models.CharField(max_length=200, null=True, blank=True)
+    references = models.JSONField(null=True, blank=True)
+
+    # Metadata
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    last_seen_at = models.DateTimeField(auto_now_add=True)
+
+    # Store full raw data for future proofing
+    raw_data = models.JSONField(null=True, blank=True)
+
+    class Meta:
+        unique_together = ("repo", "source", "external_id")
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"{self.source}:{self.external_id} - {self.title}"
