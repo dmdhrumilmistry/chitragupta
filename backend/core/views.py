@@ -22,6 +22,7 @@ from .tasks import (
     sync_github_org_users,
     trigger_trufflehog_scan_for_all_repos,
     sync_user_repos,
+    fetch_dependabot_alerts,
 )
 
 logger = getLogger(__name__)
@@ -81,6 +82,7 @@ class TriggerTaskView(APIView):
         "sync_github_org_users": sync_github_org_users,
         "trigger_trufflehog_scan_for_all_repos": trigger_trufflehog_scan_for_all_repos,
         "sync_user_repos": sync_user_repos,
+        "fetch_dependabot_alerts": fetch_dependabot_alerts,
     }
 
     def post(self, request):

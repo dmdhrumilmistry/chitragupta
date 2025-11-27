@@ -9,26 +9,39 @@ repo_platform_choices = [
 
 
 class Asset(models.Model):
+    """
+    This model represents an asset.
+    """
     id = ObjectIdAutoField(primary_key=True)
     name = models.CharField(max_length=150)
     domain = models.CharField(max_length=255)
-    ip_v4 = models.IPAddressField(null=True, blank=True)
-    ip_v6 = models.GenericIPAddressField(null=True, blank=True)
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-    status = models.CharField(max_length=20, choices=[
+    ip = models.GenericIPAddressField(null=True, blank=True)
+    ip_version = models.CharField(max_length=10, null=True, blank=True, choices=[
+        ("ipv4", "IPv4"),
+        ("ipv6", "IPv6"),
+    ])
+    status = models.CharField(max_length=30, choices=[
         ("active", "Active"),
         ("inactive", "Inactive"),
+        ("deprecated", "Deprecated"),
     ], default="active")
+    repo = models.ForeignKey(
+        "Repo", on_delete=models.CASCADE, null=True, blank=True)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
         ordering = ["-created_at"]
 
     def __str__(self):
-        return f"{self.name}({self.domain})"
+        return f"Asset({self.name})"
 
 
 class RepoOwner(models.Model):
+    """
+    This model represents a repository owner.
+    """
     id = ObjectIdAutoField(primary_key=True)
     name = models.CharField(max_length=100, unique=True)
     platform = models.CharField(
@@ -44,10 +57,13 @@ class RepoOwner(models.Model):
         ordering = ["-created_at"]
 
     def __str__(self):
-        return f"{self.platform}({self.name})"
+        return f"RepoOwner({self.platform}({self.name})"
 
 
 class Repo(models.Model):
+    """
+    This model represents a repository.
+    """
     id = ObjectIdAutoField(primary_key=True)
     https_url = models.URLField(unique=True)
     ssh_url = models.URLField(unique=True)
@@ -83,6 +99,9 @@ class Repo(models.Model):
 
 
 class SecretScanResult(models.Model):
+    """
+    This model represents a secret scan result.
+    """
     id = ObjectIdAutoField(primary_key=True)
     file_path = models.CharField(max_length=500)
     file_line = models.IntegerField(null=True, blank=True)
@@ -113,6 +132,9 @@ class SecretScanResult(models.Model):
 
 
 class Vulnerability(models.Model):
+    """
+    This model represents a vulnerability found in an asset.
+    """
     id = ObjectIdAutoField(primary_key=True)
     asset = models.ForeignKey(Asset, on_delete=models.CASCADE)
 
@@ -154,6 +176,7 @@ class Vulnerability(models.Model):
     fixed_version = models.CharField(max_length=100, null=True, blank=True)
 
     # Vuln metadata
+    ghsa_id = models.CharField(max_length=100, null=True, blank=True)
     cve_ids = models.JSONField(null=True, blank=True)
     cwe_ids = models.JSONField(null=True, blank=True)
     cvss_score = models.FloatField(null=True, blank=True)
@@ -169,8 +192,9 @@ class Vulnerability(models.Model):
     raw_data = models.JSONField(null=True, blank=True)
 
     class Meta:
-        unique_together = ("repo", "source", "external_id")
+        unique_together = ("asset", "source", "external_id")
         ordering = ["-created_at"]
+        verbose_name_plural = "Vulnerabilities"
 
     def __str__(self):
         return f"{self.source}:{self.external_id} - {self.title}"

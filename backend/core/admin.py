@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import Repo, RepoOwner, SecretScanResult
+from .models import Repo, RepoOwner, SecretScanResult, Asset, Vulnerability
 
 
 @admin.register(Repo)
@@ -61,3 +61,23 @@ class SecretScanResultAdmin(admin.ModelAdmin):
 
     repo_owner.short_description = "Owner"
     repo_owner.admin_order_field = "repo__owner__name"
+
+
+@admin.register(Asset)
+class AssetAdmin(admin.ModelAdmin):
+    list_display = ["name", "domain", "ip",
+                    "ip_version", "repo", "created_at", "updated_at"]
+    search_fields = ["name", "domain", "ip",
+                     "ip_version", "repo__name", "repo__owner__name"]
+    list_filter = ["name", "domain", "ip",
+                   "ip_version", "repo__name", "repo__owner__name"]
+
+
+@admin.register(Vulnerability)
+class VulnerabilityAdmin(admin.ModelAdmin):
+    list_display = ["created_at", "updated_at", "file_path", "asset", "source", "external_id", "title", "description", "severity",
+                    "state", "line_number", "package_name", "affected_version", "fixed_version", "cvss_score", "cvss_vector", "last_seen_at"]
+    search_fields = ["file_path", "asset__name", "asset__domain", "asset__ip",
+                     "asset__ip_version", "asset__repo__name", "asset__repo__owner__name"]
+    list_filter = ["file_path", "asset__name", "asset__domain", "asset__ip",
+                   "asset__ip_version", "asset__repo__name", "asset__repo__owner__name", "severity"]

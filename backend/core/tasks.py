@@ -8,9 +8,10 @@ from logging import getLogger
 from subprocess import run, PIPE, STDOUT
 
 from dateutil import parser
+from django.utils.timezone import now
 from celery import shared_task
 
-from core.models import RepoOwner, Repo, SecretScanResult
+from core.models import RepoOwner, Repo, SecretScanResult, Vulnerability
 from core.exceptions import TrufflehogScanError
 from utils.github import GitHubUtils, get_github_app
 
@@ -275,3 +276,78 @@ def sync_user_repos(self):  # pylint: disable=unused-argument
         fetch_owner_repos_task.delay(str(user.pk))
 
     return {"ok": True, "total_users_triggered": total_users}
+
+
+@shared_task
+def fetch_dependabot_alerts(instance_pk: str):
+    """
+    Fetches dependabot alerts for all repositories.
+    """
+    try:
+        repo = Repo.objects.get(pk=instance_pk)  # pylint: disable=no-member
+    except Repo.DoesNotExist:  # pylint: disable=no-member
+        logger.error("Repo %s does not exist", instance_pk)
+        return {"ok": False, "reason": "repo_not_found"}
+
+    if repo.platform != "github":
+        logger.info("Skipping non-GitHub repository: %s", repo)
+        return {"ok": False, "reason": "not_github"}
+
+    gh = get_github_app()
+    alerts = gh.get_repo_alerts(repo)
+    created_vulns_count = 0
+    existing_vulns_count = 0
+    for alert in alerts:
+        vuln, created = Vulnerability.objects.get_or_create(  # pylint: disable=no-member
+            repo=repo,
+            ghsa_id=alert.security_advisory.ghsa_id,
+        )
+
+        vuln.severity = alert.security_advisory.severity
+        vuln.title = alert.security_advisory.summary
+        vuln.description = alert.security_advisory.description
+        vuln.cvss_score = alert.security_advisory.cvss.score
+        vuln.cvss_vector = alert.security_advisory.cvss.vector_string
+
+        vuln.package_name = alert.security_vulnerability.package.name
+        vuln.affected_version = alert.security_vulnerability.vulnerable_version_range
+        vuln.fixed_version = alert.security_vulnerability.first_patched_version.get(
+            'identifier')
+        vuln.file_path = alert.dependency.file_path
+
+        vuln.source = "dependabot"
+        vuln.external_id = f"{repo.platform}:{repo.owner.name}/{repo.name}@{alert.security_advisory.ghsa_id}"
+
+        vuln.references = alert.security_advisory.references
+
+        vuln.cve_ids = [alert.security_advisory.cve_id]
+
+        # set cwe ids
+        cwe_ids = []
+        for cwe in alert.security_advisory.cwes:
+            cwe_ids.append({"id": cwe.cwe_id, "name": cwe.name})
+        vuln.cwe_ids = cwe_ids
+
+        vuln.raw_data = alert.raw_data
+
+        vuln.last_seen_at = now()
+        if alert.auto_dismissed_at:
+            vuln.status = "auto_dismissed"
+        elif alert.dismissed_at:
+            vuln.status = "dismissed"
+        elif alert.fixed_at:
+            vuln.status = "fixed"
+
+        # TODO: map asset to repo
+        # vuln.asset
+
+        if created:
+            logger.info("Created Vulnerability: %s", vuln)
+            created_vulns_count += 1
+        else:
+            logger.info("Vulnerability already exists: %s", vuln)
+            existing_vulns_count += 1
+
+        vuln.save()
+
+    return {"ok": True}
