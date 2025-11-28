@@ -75,9 +75,9 @@ class AssetAdmin(admin.ModelAdmin):
 
 @admin.register(Vulnerability)
 class VulnerabilityAdmin(admin.ModelAdmin):
-    list_display = ["created_at", "updated_at", "file_path", "asset", "source", "external_id", "title", "description", "severity",
+    list_display = ["created_at", "updated_at", "file_path", "asset", "source", "external_id", "title", "severity",
                     "state", "line_number", "package_name", "affected_version", "fixed_version", "cvss_score", "cvss_vector", "last_seen_at"]
-    search_fields = ["file_path", "asset__name", "asset__domain", "asset__ip",
+    search_fields = ["file_path", "asset__name", "asset_domain", "asset__ip",
                      "asset__ip_version", "asset__repo__name", "asset__repo__owner__name"]
     list_filter = ["file_path", "asset__name", "asset__domain", "asset__ip",
                    "asset__ip_version", "asset__repo__name", "asset__repo__owner__name", "severity"]
