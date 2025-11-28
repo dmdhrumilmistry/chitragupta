@@ -8,11 +8,12 @@ from logging import getLogger
 from subprocess import run, PIPE, STDOUT
 
 from dateutil import parser
+from django.utils.timezone import now
 from celery import shared_task
 
-from core.models import RepoOwner, Repo, SecretScanResult
+from core.models import RepoOwner, Repo, SecretScanResult, Vulnerability, Asset
 from core.exceptions import TrufflehogScanError
-from utils.github import GitHubUtils, get_default_github_app
+from utils.github import GitHubUtils, get_github_app
 
 logger = getLogger(__name__)
 
@@ -29,7 +30,7 @@ def fetch_owner_repos_task(instance_pk: str):
     except RepoOwner.DoesNotExist:  # pylint: disable=no-member
         return {"ok": False, "reason": "instance_not_found"}
 
-    gh: GitHubUtils = get_default_github_app()
+    gh: GitHubUtils = get_github_app()
 
     repos = []
     if owner.is_organization:
@@ -76,7 +77,7 @@ def scan_repo(repo_pk: str, concurrency: int = 10, only_verified: bool = False):
         logger.error("Repo with pk %s does not exist.", repo_pk)
         return {"ok": False, "reason": "repo_not_found"}
 
-    gh = get_default_github_app()
+    gh = get_github_app()
     token = gh.auth.token
 
     until = datetime.now()
@@ -194,7 +195,7 @@ def sync_github_org_users(self):  # pylint: disable=unused-argument
     organizations = RepoOwner.objects.filter(  # pylint: disable=no-member
         is_organization=True)
 
-    gh: GitHubUtils = get_default_github_app()
+    gh: GitHubUtils = get_github_app()
     for org in organizations:
         if org.platform != "github":
             logger.info("Skipping non-GitHub organization: %s", org.name)
@@ -275,3 +276,108 @@ def sync_user_repos(self):  # pylint: disable=unused-argument
         fetch_owner_repos_task.delay(str(user.pk))
 
     return {"ok": True, "total_users_triggered": total_users}
+
+
+@shared_task
+def fetch_dependabot_alerts(asset_pk: str):
+    """
+    Fetches dependabot alerts for all repositories.
+    """
+    try:
+        asset = Asset.objects.get(pk=asset_pk)  # pylint: disable=no-member
+    except Asset.DoesNotExist:  # pylint: disable=no-member
+        logger.error("Asset %s does not exist", asset_pk)
+        return {"ok": False, "reason": "asset_not_found"}
+
+    if asset.repo.platform != "github":
+        logger.info("Skipping non-GitHub repository: %s", asset)
+        return {"ok": False, "reason": "not_github"}
+
+    gh = get_github_app()
+    gh_repo = gh.client.get_repo(f"{asset.repo.owner.name}/{asset.repo.name}")
+    alerts = gh_repo.get_dependabot_alerts()
+    created_vulns_count = 0
+    existing_vulns_count = 0
+    errors_count = 0
+    for alert in alerts:
+        try:
+            source = "dependabot"
+            external_id = f"{asset.repo.platform}:{asset.repo.owner.name}/{asset.repo.name}@{alert.security_advisory.ghsa_id}"
+            vuln, created = Vulnerability.objects.get_or_create(  # pylint: disable=no-member
+                asset=asset,
+                ghsa_id=alert.security_advisory.ghsa_id,
+                source=source,
+                external_id=external_id,
+            )
+
+            if created:
+                logger.info("Created Vulnerability: %s", vuln)
+                created_vulns_count += 1
+            else:
+                logger.info("Vulnerability already exists: %s", vuln)
+                existing_vulns_count += 1
+
+            vuln.severity = alert.security_advisory.severity
+            vuln.title = alert.security_advisory.summary
+            vuln.description = alert.security_advisory.description
+            vuln.cvss_score = alert.security_advisory.cvss.score
+            vuln.cvss_vector = alert.security_advisory.cvss.vector_string
+
+            vuln.package_name = alert.security_vulnerability.package.name
+            vuln.affected_version = alert.security_vulnerability.vulnerable_version_range
+            vuln.file_path = alert.dependency.manifest_path
+            if alert.security_vulnerability.first_patched_version:
+                vuln.fixed_version = alert.security_vulnerability.first_patched_version.get(
+                    'identifier')
+
+            vuln.references = alert.security_advisory.references
+
+            vuln.cve_ids = [alert.security_advisory.cve_id]
+
+            # set cwe ids
+            cwe_ids = []
+            for cwe in alert.security_advisory.cwes:
+                cwe_ids.append({"id": cwe.cwe_id, "name": cwe.name})
+            vuln.cwe_ids = cwe_ids
+
+            vuln.raw_data = alert.raw_data
+
+            vuln.last_seen_at = now()
+            if alert.auto_dismissed_at:
+                vuln.status = "auto_dismissed"
+            elif alert.dismissed_at:
+                vuln.status = "dismissed"
+            elif alert.fixed_at:
+                vuln.status = "fixed"
+
+            vuln.save()
+        except Exception:  # pylint: disable=broad-except
+            logger.error(
+                "Error creating Vulnerability for alert %s",
+                alert,
+                exc_info=True
+            )
+            errors_count += 1
+
+    return {"ok": True, "created_vulns_count": created_vulns_count, "existing_vulns_count": existing_vulns_count, "errors_count": errors_count}
+
+
+@shared_task(bind=True)
+def sync_dependabot_alerts(self, organization_only=True):  # pylint: disable=unused-argument
+    """
+    sync dependabot alerts for organization repos.
+    """
+    repo_owners = RepoOwner.objects.filter(  # pylint: disable=no-member
+        is_organization=organization_only)
+    repos = Asset.objects.filter(  # pylint: disable=no-member
+        repo__owner__in=repo_owners)
+
+    total_repos = repos.count()
+    for index, repo in enumerate(repos):
+        logger.info(
+            "Syncing dependabot alerts for repo %s (%s/%s)",
+            repo,
+            index + 1,
+            total_repos
+        )
+        fetch_dependabot_alerts.delay(str(repo.pk))

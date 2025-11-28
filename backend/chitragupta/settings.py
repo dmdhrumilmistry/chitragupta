@@ -230,6 +230,10 @@ CELERY_BEAT_SCHEDULE = {
         "task": "core.tasks.trigger_trufflehog_scan_for_all_repos",
         "schedule": crontab(hour=0, minute=30),  # triggers at 12:30 AM
     },
+    "sync_dependabot_alerts": {
+        "task": "core.tasks.sync_dependabot_alerts",
+        "schedule": crontab(hour=2, minute=0),  # triggers at 1:00 AM
+    },
 }
 
 # Application Level Configs

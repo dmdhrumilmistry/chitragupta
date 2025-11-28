@@ -7,6 +7,9 @@ local-down:
 local-restart:
 	docker-compose -f docker-compose.local.yml restart
 
+local-restart-celery:
+	docker-compose -f docker-compose.local.yml restart celery_worker flower
+
 local-logs:
 	docker-compose -f docker-compose.local.yml logs -f
 
