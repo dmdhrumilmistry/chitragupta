@@ -325,9 +325,10 @@ def fetch_dependabot_alerts(asset_pk: str):
 
             vuln.package_name = alert.security_vulnerability.package.name
             vuln.affected_version = alert.security_vulnerability.vulnerable_version_range
-            vuln.fixed_version = alert.security_vulnerability.first_patched_version.get(
-                'identifier')
             vuln.file_path = alert.dependency.manifest_path
+            if alert.security_vulnerability.first_patched_version:
+                vuln.fixed_version = alert.security_vulnerability.first_patched_version.get(
+                    'identifier')
 
             vuln.references = alert.security_advisory.references
 
@@ -359,3 +360,24 @@ def fetch_dependabot_alerts(asset_pk: str):
             errors_count += 1
 
     return {"ok": True, "created_vulns_count": created_vulns_count, "existing_vulns_count": existing_vulns_count, "errors_count": errors_count}
+
+
+@shared_task(bind=True)
+def sync_dependabot_alerts(self, organization_only=True):  # pylint: disable=unused-argument
+    """
+    sync dependabot alerts for organization repos.
+    """
+    repo_owners = RepoOwner.objects.filter(  # pylint: disable=no-member
+        is_organization=organization_only)
+    repos = Asset.objects.filter(  # pylint: disable=no-member
+        repo__owner__in=repo_owners)
+
+    total_repos = repos.count()
+    for index, repo in enumerate(repos):
+        logger.info(
+            "Syncing dependabot alerts for repo %s (%s/%s)",
+            repo,
+            index + 1,
+            total_repos
+        )
+        fetch_dependabot_alerts.delay(str(repo.pk))
