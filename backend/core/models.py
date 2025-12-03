@@ -93,7 +93,7 @@ class Repo(models.Model):
 
     def get_https_clone_url(self, token: str):
         if self.platform == "github" and self.is_private:
-            return f"https://x-access-token:{token}@{self.owner.name}/{self.name}.git"
+            return f"https://x-access-token:{token}@github.com/{self.owner.name}/{self.name}.git"
 
         return self.https_url
 

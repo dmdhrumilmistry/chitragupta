@@ -381,3 +381,5 @@ def sync_dependabot_alerts(self, organization_only=True):  # pylint: disable=unu
             total_repos
         )
         fetch_dependabot_alerts.delay(str(repo.pk))
+
+    return {"ok": True, "total_repos_triggered": total_repos}
