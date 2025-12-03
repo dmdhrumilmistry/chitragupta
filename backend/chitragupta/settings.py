@@ -81,8 +81,8 @@ MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "whitenoise.middleware.WhiteNoiseMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
-    "django_sanitizers.middleware.SanitizerMiddleware",
     "django.middleware.common.CommonMiddleware",
+    "django_sanitizers.middleware.SanitizerMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
@@ -244,11 +244,15 @@ GITHUB_APPS_CONFIG = {
     }
 }
 
-# Config for Django-sanitizers
-
-SANITIZER_ENABLED = True
-SANITIZER_ALLOWED_TAGS = []
-SANITIZER_ALLOWED_ATTRIBUTES = {}
-SANITIZER_STRIP = True
-SANITIZER_SANITIZE_RESPONSE_HTML = False
-SANITIZER_DEBUG = False
+SANITIZER_CONFIG = {
+    # Define exactly which tags you want to KEEP
+    'ALLOWED_TAGS': [], 
+    
+    # Define allowed attributes (optional)
+    'ALLOWED_ATTRIBUTES': {},
+    
+    # Security fields to skip
+    'SKIP_FIELDS': {'password', 'password_confirmation', 'token', 'access_token', 'refresh_token','secret_key'},
+    
+    'STRIP': True
+}
