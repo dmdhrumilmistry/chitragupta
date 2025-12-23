@@ -219,7 +219,7 @@ def sync_github_org_users(self):  # pylint: disable=unused-argument
     gh: GitHubUtils = get_github_app()
     
     # Use iterator() to avoid loading all orgs into memory
-    for org in organizations.iterator(chunk_size=50):
+    for org in organizations.iterator(chunk_size=100):
         if org.platform != "github":
             logger.info("Skipping non-GitHub organization: %s", org.name)
             continue
