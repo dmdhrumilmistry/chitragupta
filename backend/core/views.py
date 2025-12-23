@@ -50,7 +50,7 @@ class RepoViewSet(FilteredCacheMixin, ModelViewSet):
     """
     ViewSet for managing Repo objects.
     """
-    queryset = Repo.objects.all()  # pylint: disable=no-member
+    queryset = Repo.objects.select_related("owner").all()  # pylint: disable=no-member
     serializer_class = RepoSerializer
     filterset_fields = ["owner__name", "platform", "is_private", "is_fork"]
     cache_filters = ["owner__name", "platform", "is_private", "is_fork"]
@@ -61,7 +61,7 @@ class SecretScanResultViewSet(FilteredCacheMixin, ModelViewSet):
     """
     ViewSet for managing SecretScanResult objects.
     """
-    queryset = SecretScanResult.objects.all()  # pylint: disable=no-member
+    queryset = SecretScanResult.objects.select_related("repo__owner").all()  # pylint: disable=no-member
     serializer_class = SecretScanResultSerializer
     filterset_fields = ["repo__name", "platform", "is_private", "is_fork"]
     cache_filters = ["repo__name", "platform", "is_private", "is_fork"]
