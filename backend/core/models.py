@@ -43,7 +43,7 @@ class RepoOwner(models.Model):
     This model represents a repository owner.
     """
     id = ObjectIdAutoField(primary_key=True)
-    name = models.CharField(max_length=100, unique=True)
+    name = models.CharField(max_length=100)
     platform = models.CharField(
         max_length=100,
         choices=repo_platform_choices,
@@ -55,6 +55,7 @@ class RepoOwner(models.Model):
 
     class Meta:
         ordering = ["-created_at"]
+        unique_together = [["platform", "name"]]
         indexes = [
             models.Index(fields=["platform", "name"]),
             models.Index(fields=["is_organization", "platform"]),

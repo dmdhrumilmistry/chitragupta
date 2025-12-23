@@ -86,15 +86,18 @@ def scan_repo(repo_pk: str, concurrency: int = 10, only_verified: bool = False):
     # Fetch commit info before scan to use consistent timestamp
     try:
         gh_repo = gh.client.get_repo(f"{repo.owner.name}/{repo.name}", lazy=True)
+        
+        # Check if repository has commits before making the API call
         commits = gh_repo.get_commits(until=until)
         
         # Safely get first commit from paginated list
-        latest_commit = next(iter(commits), None)
-        if latest_commit is None:
+        try:
+            latest_commit = next(iter(commits))
+            latest_commit_sha = latest_commit.sha
+        except StopIteration:
             logger.error("No commits found for repo %s", repo)
             return {"ok": False, "reason": "no_commits_found"}
-        
-        latest_commit_sha = latest_commit.sha
+            
     except Exception:  # pylint: disable=broad-except
         logger.error(
             "Error fetching latest commit for repo %s",
