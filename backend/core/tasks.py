@@ -88,12 +88,12 @@ def scan_repo(repo_pk: str, concurrency: int = 10, only_verified: bool = False):
         gh_repo = gh.client.get_repo(f"{repo.owner.name}/{repo.name}", lazy=True)
         commits = gh_repo.get_commits(until=until)
         
-        # Check if commits list is not empty
-        if commits.totalCount == 0:
+        # Safely get first commit from paginated list
+        latest_commit = next(iter(commits), None)
+        if latest_commit is None:
             logger.error("No commits found for repo %s", repo)
             return {"ok": False, "reason": "no_commits_found"}
         
-        latest_commit = commits[0]
         latest_commit_sha = latest_commit.sha
     except Exception:  # pylint: disable=broad-except
         logger.error(
