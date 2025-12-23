@@ -72,7 +72,7 @@ def scan_repo(repo_pk: str, concurrency: int = 10, only_verified: bool = False):
     Triggers Trufflehog scan for a repository.
     """
     try:
-        repo = Repo.objects.get(pk=repo_pk)  # pylint: disable=no-member
+        repo = Repo.objects.select_related("owner").get(pk=repo_pk)  # pylint: disable=no-member
     except Repo.DoesNotExist:  # pylint: disable=no-member
         logger.error("Repo with pk %s does not exist.", repo_pk)
         return {"ok": False, "reason": "repo_not_found"}
@@ -80,7 +80,20 @@ def scan_repo(repo_pk: str, concurrency: int = 10, only_verified: bool = False):
     gh = get_github_app()
     token = gh.auth.token
 
-    until = datetime.now()
+    # Fetch commit info before scan to use consistent timestamp
+    try:
+        gh_repo = gh.client.get_repo(f"{repo.owner.name}/{repo.name}", lazy=True)
+        until = datetime.now()
+        latest_commit = gh_repo.get_commits(until=until)[0]
+        latest_commit_sha = latest_commit.sha
+    except Exception:  # pylint: disable=broad-except
+        logger.error(
+            "Error fetching latest commit for repo %s",
+            repo,
+            exc_info=True
+        )
+        return {"ok": False, "reason": "commit_fetch_error"}
+
     command = [
         "trufflehog",
         "git",
@@ -168,11 +181,7 @@ def scan_repo(repo_pk: str, concurrency: int = 10, only_verified: bool = False):
 
         # update repo commit SHAs if scan was successful
         repo.previous_commit_sha = repo.latest_commit_sha
-        repo.latest_commit_sha = (
-            gh.client.get_repo(f"{repo.owner.name}/{repo.name}", lazy=True)
-            .get_commits(until=until)[0]
-            .sha
-        )
+        repo.latest_commit_sha = latest_commit_sha
         repo.save()
 
     except Exception:  # pylint: disable=broad-except
@@ -196,7 +205,9 @@ def sync_github_org_users(self):  # pylint: disable=unused-argument
         is_organization=True)
 
     gh: GitHubUtils = get_github_app()
-    for org in organizations:
+    
+    # Use iterator() to avoid loading all orgs into memory
+    for org in organizations.iterator(chunk_size=50):
         if org.platform != "github":
             logger.info("Skipping non-GitHub organization: %s", org.name)
             continue
@@ -242,7 +253,9 @@ def trigger_trufflehog_scan_for_all_repos(
     """
     repos = Repo.objects.all()  # pylint: disable=no-member
     total_repos = repos.count()
-    for index, repo in enumerate(repos):
+    
+    # Use iterator() to avoid loading all repos into memory
+    for index, repo in enumerate(repos.iterator(chunk_size=100)):
         logger.info(
             "Triggering scan for repo %s (%s/%s)",
             repo,
@@ -266,7 +279,9 @@ def sync_user_repos(self):  # pylint: disable=unused-argument
         is_organization=False)
 
     total_users = users.count()
-    for index, user in enumerate(users):
+    
+    # Use iterator() to avoid loading all users into memory
+    for index, user in enumerate(users.iterator(chunk_size=100)):
         logger.info(
             "Syncing repos for user %s (%s/%s)",
             user,
@@ -284,7 +299,7 @@ def fetch_dependabot_alerts(asset_pk: str):
     Fetches dependabot alerts for all repositories.
     """
     try:
-        asset = Asset.objects.get(pk=asset_pk)  # pylint: disable=no-member
+        asset = Asset.objects.select_related("repo__owner").get(pk=asset_pk)  # pylint: disable=no-member
     except Asset.DoesNotExist:  # pylint: disable=no-member
         logger.error("Asset %s does not exist", asset_pk)
         return {"ok": False, "reason": "asset_not_found"}
@@ -373,7 +388,9 @@ def sync_dependabot_alerts(self, organization_only=True):  # pylint: disable=unu
         repo__owner__in=repo_owners)
 
     total_repos = repos.count()
-    for index, repo in enumerate(repos):
+    
+    # Use iterator() to avoid loading all repos into memory
+    for index, repo in enumerate(repos.iterator(chunk_size=100)):
         logger.info(
             "Syncing dependabot alerts for repo %s (%s/%s)",
             repo,

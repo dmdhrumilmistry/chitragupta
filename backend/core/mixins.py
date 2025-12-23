@@ -2,7 +2,6 @@
 Mixins for Chitragupta API.
 """
 
-from json import dumps
 from hashlib import sha256
 from django.core.cache import cache
 from rest_framework.response import Response
@@ -36,10 +35,18 @@ class FilteredCacheMixin:
         # include page/limit (DRF pagination) and path to avoid cross-view collisions
         page = request.GET.get("page", "")
         page_size = request.GET.get("page_size", "")
-        payload = {"path": request.path, "params": params,
-                   "page": page, "page_size": page_size}
-        s = dumps(payload, sort_keys=True, separators=(",", ":"))
-        h = sha256(s.encode()).hexdigest()
+        
+        # More efficient: build string directly instead of JSON dumping full dict
+        parts = [request.path, page, page_size]
+        for k in sorted(allowed):
+            if k in params:
+                values = params[k]
+                # Sort and join values for consistent hashing
+                parts.append(f"{k}:{','.join(sorted(values))}")
+        
+        cache_str = "|".join(parts)
+        h = sha256(cache_str.encode()).hexdigest()
+        
         version = ""
         if self.cache_version_key:
             version = str(cache.get(self.cache_version_key) or "")
