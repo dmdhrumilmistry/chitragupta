@@ -80,11 +80,20 @@ def scan_repo(repo_pk: str, concurrency: int = 10, only_verified: bool = False):
     gh = get_github_app()
     token = gh.auth.token
 
+    # Capture timestamp before any API calls for consistency
+    until = datetime.now()
+    
     # Fetch commit info before scan to use consistent timestamp
     try:
         gh_repo = gh.client.get_repo(f"{repo.owner.name}/{repo.name}", lazy=True)
-        until = datetime.now()
-        latest_commit = gh_repo.get_commits(until=until)[0]
+        commits = gh_repo.get_commits(until=until)
+        
+        # Check if commits list is not empty
+        if commits.totalCount == 0:
+            logger.error("No commits found for repo %s", repo)
+            return {"ok": False, "reason": "no_commits_found"}
+        
+        latest_commit = commits[0]
         latest_commit_sha = latest_commit.sha
     except Exception:  # pylint: disable=broad-except
         logger.error(
