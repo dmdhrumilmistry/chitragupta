@@ -55,7 +55,7 @@ Modified bulk task processing to use Django's `iterator()` method:
 - **trigger_trufflehog_scan_for_all_repos**: Uses `iterator(chunk_size=100)` to process repos
 - **sync_user_repos**: Uses `iterator(chunk_size=100)` to process users
 - **sync_dependabot_alerts**: Uses `iterator(chunk_size=100)` to process repos
-- **sync_github_org_users**: Uses `iterator(chunk_size=50)` to process organizations
+- **sync_github_org_users**: Uses `iterator(chunk_size=100)` to process organizations
 
 **Impact**: Prevents loading entire querysets into memory, reducing memory consumption from O(n) to O(chunk_size). Critical for deployments with thousands of repositories.
 

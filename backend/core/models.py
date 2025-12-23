@@ -55,7 +55,7 @@ class RepoOwner(models.Model):
 
     class Meta:
         ordering = ["-created_at"]
-        unique_together = [("platform", "name")]
+        unique_together = (("platform", "name"),)
         indexes = [
             models.Index(fields=["platform", "name"]),
             models.Index(fields=["is_organization", "platform"]),
