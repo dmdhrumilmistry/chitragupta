@@ -10,6 +10,7 @@ from subprocess import run, PIPE, STDOUT
 from dateutil import parser
 from django.utils.timezone import now
 from celery import shared_task
+from github import GithubException
 
 from core.models import RepoOwner, Repo, SecretScanResult, Vulnerability, Asset
 from core.exceptions import TrufflehogScanError
@@ -85,7 +86,7 @@ def scan_repo(repo_pk: str, concurrency: int = 10, only_verified: bool = False):
     
     # Fetch commit info before scan to use consistent timestamp
     try:
-        gh_repo = gh.client.get_repo(f"{repo.owner.name}/{repo.name}", lazy=True)
+        gh_repo = gh.client.get_repo(f"{repo.owner.name}/{repo.name}")
         
         # Check if repository has commits before making the API call
         commits = gh_repo.get_commits(until=until)
@@ -97,7 +98,14 @@ def scan_repo(repo_pk: str, concurrency: int = 10, only_verified: bool = False):
         except StopIteration:
             logger.error("No commits found for repo %s", repo)
             return {"ok": False, "reason": "no_commits_found"}
-            
+    except GithubException as e:
+        logger.error(
+            "GitHub API error fetching latest commit for repo %s: %s",
+            repo,
+            str(e),
+            exc_info=True
+        )
+        return {"ok": False, "reason": "github_api_error"}
     except Exception:  # pylint: disable=broad-except
         logger.error(
             "Error fetching latest commit for repo %s",
